@@ -1,13 +1,15 @@
 import express from 'express';
 const router = express.Router();
 
-import { postUser, verifyUser } from '../controllers/auth.js';
+import { getUser, postUser, verifyUser } from '../controllers/auth.js';
 
 //registeration
 router.post('/register', postUser)
 
 //verification
-router.get('/verify', verifyUser)
+router.get('/verify/:userId/:uniqueString', verifyUser)
 
+//login
+router.post('/login', getUser)
 
 export default router;

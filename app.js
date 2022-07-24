@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 
 import authRoute from './api/routes/auth.js';
-// import userRoute from './api/routes/user.js';
+import userRoute from './api/routes/user.js';
 // import { get404 } from './api/controllers/error.js';
 
 const app = express();
@@ -38,7 +38,7 @@ app.use('/auth', authRoute );
 
 
 //user routes
-// app.use('/users', userRoute);
+app.use('/users', userRoute);
 
 
 app.use((req, res)=>{

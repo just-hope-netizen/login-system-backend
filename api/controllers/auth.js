@@ -1,20 +1,8 @@
 import User from '../models/user.js';
 import UserVerification from '../models/user-verification.js';
 import CryptoJS from 'crypto-js';
-import nodemailer from 'nodemailer';
-
-
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.MAIL_USERNAME,
-    pass: process.env.MAIL_PASSWORD,
-  }
-})
+import { v4 } from 'uuid';
+import { transporter } from '../config/nodemailer.js';
 
 
 export const postUser = async (req, res) => {
@@ -30,12 +18,13 @@ export const postUser = async (req, res) => {
   });
 
   try {
+
     //check if email has already being used
     const user = await User.findOne({
       email: req.body.email,
     })
     if (user) {
-      res.status(401).json({
+      res.json({
         message: 'Email is already in use',
       })
     } else {
@@ -45,35 +34,35 @@ export const postUser = async (req, res) => {
       sendVerificationEmail(createdUser, res);
     }
   } catch (err) {
-    res.status(400).json(err);
+    res.json(err);
   };
 }
 
 
 
 const sendVerificationEmail = async (createdUser, res) => {
-  const { _id, email } = createdUser._doc;
+    const { _id, email } = createdUser._doc;
+  //url to be used in the email
+ const currentUrl =  'http://localhost:3000/'
 
-  //generate random number
-  const randomNumber = Math.floor(Math.random() * 90000) + 10000;
+  const uniqueString = v4() + _id;
 
   const mailOptions = {
     from: process.env.MAIL_USERNAME,
     to: email,
     subject: 'Verifiy Your Email',
-    html: `<p>Verify your email address to complete the signup and login into your account.</p><p>This pin <b>expires in 6 hours</b>.</p> <h3>${randomNumber}</h3>`
+    html: `<p>Verify your email address to complete the signup and login into your account.</p><p>This link <b>expires in 6 hours</b>.</p> <p>Click <a href =${currentUrl + 'verify/' + _id + '/' + uniqueString}>here</a> to proceed.</p>`
   }
 
-  const convertNumToString = randomNumber.toString();
-  //encryt passcode
-  const encryptedPasscode = CryptoJS.AES.encrypt(
-    convertNumToString,
+  //encryt uniquestring
+  const encryptedUniqueString = CryptoJS.AES.encrypt(
+    uniqueString,
     process.env.PASS_PHRASE
   ).toString()
 
   const userVerification = new UserVerification({
     userId: _id,
-    passcode: encryptedPasscode,
+    uniqueString: encryptedUniqueString,
     createdAt: Date.now(),
     expiresAt: Date.now() + 21600000
   })
@@ -83,12 +72,12 @@ const sendVerificationEmail = async (createdUser, res) => {
 
     transporter.sendMail(mailOptions, (err, info) => {
       if (err) {
-        res.status(401).json({
+        res.json({
           message: 'Email verification failed to send',
           err
         })
       } else
-        res.status(200).json({
+        res.json({
           message: 'Email verification message sent successfully', info
         });
 
@@ -96,7 +85,7 @@ const sendVerificationEmail = async (createdUser, res) => {
 
 
   } catch (err) {
-    res.status(401).json({
+    res.json({
       message: 'Email verification failed',
       err
     })
@@ -104,14 +93,12 @@ const sendVerificationEmail = async (createdUser, res) => {
 }
 
 export const verifyUser = async (req, res) => {
-  const { userId, passcode } = req.body;
+  const { userId, uniqueString } = req.params;
 
   try {
     const verifyObject = await UserVerification.findOne({
       userId: userId
     })
-
-    
 
     if (verifyObject) {
       const { expiresAt } = verifyObject;
@@ -121,7 +108,7 @@ export const verifyUser = async (req, res) => {
         //if true delete userVerification and user collection from database
         UserVerification.deleteOne({ userId })
         User.deleteOne({ _id: userId })
-        res.status(401).json({
+        res.json({
           message: 'link has expired',
         })
       } else {
@@ -132,23 +119,23 @@ export const verifyUser = async (req, res) => {
         );
         const decryptString = hashedString.toString(CryptoJS.enc.Utf8);
 
-        if (decryptString !== uniqueString && res.status(401).json('uniqueString does not match the one stored in the database')) return;
+        if (decryptString !== uniqueString && res.json('uniqueString does not match the one stored in the database')) return;
 
         const user = await User.findOneAndUpdate({ _id: userId }, { verified: true }, { new: true })
         if (!user) {
-          res.status(401).json({
+          res.json({
             message: 'Unable to verify user',
           })
         } else {
          await UserVerification.deleteOne({ userId })
-          let { password, ...others } = user._doc;
-          res.status(201).json({ ...others });
+          let { verified } = user._doc;
+          res.json({ verified});
         }
       }
 
     }
   } catch (err) {
-    res.status(401).json({
+    res.json({
       message: 'User verification failed',
       err
     })
@@ -157,16 +144,15 @@ export const verifyUser = async (req, res) => {
 
 export const getUser = async (req, res) => {
   try {
-    //find user
     //check if verified
     const user = await User.findOne({ email: req.body.email });
     if (!user) {
-      res.status(401).json({
-        message: 'user not found',
+      res.json({
+        msg: 'user not found',
       });
     } else if (!user.verified) {
-      res.status(401).json({
-        message: 'user is not verified',
+      res.json({
+        msg: 'user is not verified',
       });
 
     } else {
@@ -178,10 +164,9 @@ export const getUser = async (req, res) => {
 
       //evaluate password
       if (decryptPassword !== req.body.password) {
-        res.status(401).json('password does not match the one stored in the database');
+        res.json({msg :'password does not match the one stored in the database'});
       } else {
-        const { password, ...others } = user._doc; //because of mongodb
-        res.status(200).json({ ...others, accessToken });
+        res.json( {msg: 'Access granted'} );
       }
     }
 

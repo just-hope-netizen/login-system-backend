@@ -7,9 +7,8 @@ const userVerification = new Schema({
         type: String,
         required: true,
         unique: true
-        
     },
-    passcode: {
+    uniqueString: {
         type: String,
         required: true,
         unique: true
