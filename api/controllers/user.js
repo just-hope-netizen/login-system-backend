@@ -5,7 +5,7 @@ import CryptoJS from 'crypto-js';
 
 export const sendMail = async (req, res) => {
     const { email } = req.body;
-    const currentUrl = 'http://localhost:3000/'
+    const currentUrl = 'https://ceevo.netlify.app/'
     try {
 
         const user = await User.findOne({ email: email })

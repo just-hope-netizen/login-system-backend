@@ -43,7 +43,7 @@ export const postUser = async (req, res) => {
 const sendVerificationEmail = async (createdUser, res) => {
     const { _id, email } = createdUser._doc;
   //url to be used in the email
- const currentUrl =  'http://localhost:3000/'
+  const currentUrl =  'https://ceevo.netlify.app/'
 
   const uniqueString = v4() + _id;
 
