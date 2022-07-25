@@ -45,6 +45,9 @@ const sendVerificationEmail = async (createdUser, res) => {
   //url to be used in the email
   const currentUrl =  'https://ceevo.netlify.app/'
 
+  // const currentUrl = 'http://localhost:3000/'
+
+
   const uniqueString = v4() + _id;
 
   const mailOptions = {
@@ -128,8 +131,13 @@ export const verifyUser = async (req, res) => {
           })
         } else {
          await UserVerification.deleteOne({ userId })
-          let { verified } = user._doc;
-          res.json({ verified});
+          let { verified, email, password } = user._doc;
+          const hashedPassword = CryptoJS.AES.decrypt(
+            password,
+            process.env.PASS_PHRASE
+          );
+          const decryptPassword = hashedPassword.toString(CryptoJS.enc.Utf8);
+          res.json({ verified, email, decryptPassword});
         }
       }
 
