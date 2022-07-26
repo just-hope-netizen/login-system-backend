@@ -10,31 +10,36 @@ export const sendMail = async (req, res) => {
     try {
 
         const user = await User.findOne({ email: email })
-        const userId = user._id
-        const mailOptions = {
-            from: process.env.MAIL_USERNAME,
-            to: email,
-            subject: 'Change Your Password',
-            html: `</p> <p>Click <a href =${currentUrl + 'change-password/' + userId}>here</a> to change your password.</p>`
+        if (user) {
+            const userId = user._id
+            const mailOptions = {
+                from: process.env.MAIL_USERNAME,
+                to: email,
+                subject: 'Change Your Password',
+                html: `</p> <p>Click <a href =${currentUrl + 'change-password/' + userId}>here</a> to change your password.</p>`
+            }
+    
+            transporter.sendMail(mailOptions, (err, info) => {
+                if (err) {
+                    res.json({
+                        msg: 'Password reset message failed to send',
+                        err
+                    })
+                } else
+                    res.json({
+                        msg: 'Password reset message sent successfully', info
+                    });
+    
+            })
+            
+        }else{
+            res.json({msg: 'Email is not registered'})
         }
-
-        transporter.sendMail(mailOptions, (err, info) => {
-            if (err) {
-                res.status(401).json({
-                    message: 'Password reset message failed to send',
-                    err
-                })
-            } else
-                res.status(200).json({
-                    message: 'Password reset message sent successfully', info
-                });
-
-        })
 
 
     } catch (err) {
-        res.status(401).json({
-            message: 'Password reset message failed to send',
+        res.json({
+            msg: 'Password reset message failed to send',
             err
         })
     }
@@ -66,8 +71,8 @@ export const editUser = async (req, res) => {
 
 
     } catch (err) {
-        res.status(401).json({
-            message: 'Password reset failed',
+        res.json({
+            msg: 'Password reset failed',
             err
         })
     }
